@@ -1,4 +1,4 @@
-#root {
+html, body, #root {
   max-width: 1280px;
   margin: 0 auto;
   padding: 2rem;
@@ -39,4 +39,24 @@
 
 .read-the-docs {
   color: #888;
+}
+
+/* Placeholder prompt styles used in ChatPage */
+.placeholder-prompt {
+  font-size: 0.6rem;
+  background-color: transparent;
+  color: inherit;
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-right: 6px;
+  transition: background-color 120ms ease, transform 120ms ease;
+}
+.placeholder-prompt:hover {
+  background-color: rgba(0, 123, 255, 0.12);
+  transform: translateY(-1px);
+  cursor: pointer;
+}
+.placeholder-prompt:active {
+  transform: translateY(0);
 }

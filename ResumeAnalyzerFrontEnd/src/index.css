@@ -66,3 +66,13 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+/* Theme classes applied to html/body */
+html.theme-dark, body.theme-dark {
+  background-color: #121212;
+  color: #eee;
+}
+html.theme-light, body.theme-light {
+  background-color: #ffffff;
+  color: #111;
+}

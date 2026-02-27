@@ -6,182 +6,341 @@ import { useDropzone } from "react-dropzone";
 const UploadPage = () => {
 	const [selectedFile, setSelectedFile] = useState(null);
 	const [jobDescription, setJobDescription] = useState("");
-	// extracted payload fields to display in dashboard
-	
 	const [error, setError] = useState("");
 	const [isLoading, setIsLoading] = useState(false);
+	const [uploadProgress, setUploadProgress] = useState(0);
 
 	// theme (light / dark)
 	const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "light");
+	
 	useEffect(() => {
 		localStorage.setItem("theme", theme);
+		document.documentElement.classList.remove('theme-light', 'theme-dark');
+		document.documentElement.classList.add(`theme-${theme}`);
+		document.body.classList.remove('theme-light', 'theme-dark');
+		document.body.classList.add(`theme-${theme}`);
 	}, [theme]);
 
 	const themeStyles = theme === "dark"
 		? { background: "#121212", color: "#eee" }
 		: { background: "#fff", color: "#111" };
+	
 	const navigate = useNavigate();
 
-	const onFileChange = (event) => {
-		setSelectedFile(event.target.files[0]);
+	// Validate file type
+	const validateFile = (file) => {
+		const allowedTypes = ['application/msword', 
+			'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+		const maxSize = 5 * 1024 * 1024; // 5MB
+		
+		if (!allowedTypes.includes(file.type)) {
+			setError('Please upload a Word document only.');
+			return false;
+		}
+		if (file.size > maxSize) {
+			setError('File size must be less than 5MB.');
+			return false;
+		}
+		return true;
 	};
 
-	const onDrop = useCallback((acceptedFiles) => {
-		if (acceptedFiles && acceptedFiles.length > 0) setSelectedFile(acceptedFiles[0]);
+	const onFileChange = (event) => {
+		const file = event.target.files[0];
+		if (file && validateFile(file)) {
+			setSelectedFile(file);
+			setError("");
+		}
+	};
+
+	const onDrop = useCallback((acceptedFiles, rejectedFiles) => {
+		if (rejectedFiles.length > 0) {
+			setError('Invalid file type. Please upload PDF or Word documents.');
+			return;
+		}
+		if (acceptedFiles && acceptedFiles.length > 0) {
+			const file = acceptedFiles[0];
+			if (validateFile(file)) {
+				setSelectedFile(file);
+				setError("");
+			}
+		}
 	}, []);
 
-	const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, multiple: false });
+	const { getRootProps, getInputProps, isDragActive } = useDropzone({ 
+		onDrop, 
+		multiple: false,
+		accept: {			
+			'application/msword': ['.doc'],
+			'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx']
+		}
+	});
 
 	const onFileUpload = async () => {
+
+		if(jobDescription.trim().length === 0) {
+			setError("Please enter a job description to get tailored suggestions.");
+			return;
+		}
 		if (!selectedFile) {
-			console.log("No file selected");
+			setError("Please select a file first");
 			return;
 		}
 
 		const formData = new FormData();
-		formData.append("file", selectedFile); // "file" should match the @RequestParam name in Java
-		// append job description if provided
+		formData.append("file", selectedFile);
+		
 		if (jobDescription && jobDescription.trim() !== "") {
 			formData.append("jobDescription", jobDescription.trim());
 		}
 
 		setIsLoading(true);
+		setError("");
+		setUploadProgress(0);
+
 		try {
-			// const response = await axios.post(
-			// 	"http://localhost:8080/v1/analyze/Ollama",
-			// 	formData,
-			// 	{
-			// 		headers: {
-			// 			"Content-Type": "multipart/form-data",
-			// 		},
+			// Uncomment when backend is ready
+			const response = await axios.post(
+				"http://localhost:8080/v1/analyze/Ollama",
+				formData,
+				{
+					headers: {
+						"Content-Type": "multipart/form-data",
+					},
+					onUploadProgress: (progressEvent) => {
+						const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+						setUploadProgress(percentCompleted);
+					}
+				}
+			);
+
+			// Mock success response
+			// await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate network delay
+			// const response = { 
+			// 	res_code: 200, 
+			// 	payload: {
+			// 		Suggestions: "Based on your resume and the job description, here are key suggestions for improvement...",
+			// 		KeyWords: "Java, Spring Boot, React, AWS, Microservices, Kafka",
+			// 		HonestReview: "Your resume shows strong technical skills but could benefit from more quantifiable achievements."
 			// 	}
-			// );
-	/*success response UI test*/		const response = { res_code: 200, payload :{ "suggestions": "Based on the job description, here are some suggested changes to make your resume more compliant=\n\n**Change 1= Highlight relevant experience**\n\nWhile you have experience as a Software Engineer and Java Developer, focus on highlighting projects or experiences that demonstrate strong skills in Frontend and back-end development, Kafka, microservices, Springboot, and AWS/Azure. Specifically, mention the S-NOC project where you led migration from monolith to microservices.\n\n**Change 2= Emphasize technical skills**\n\nIn addition to listing your technical skills, use specific examples or phrases that demonstrate expertise in ReactJS, Core Java/Advanced Java, Springboot, Kafka, and CI/CD. For example=\n\n* \"Developed responsive financial dashboards using ReactJS...\"\n* \"Designed and implemented API Gateways with Springboot...\"\n* \"Streamlined data processing using Kafka...\"\n\n**Change 3= Use keywords from the job description**\n\nIncorporate keywords like \"Frontend and back-end dev,\" \"Kafka, Streaming,\" \"Microservices,\" \"CI/CD,\" and \"AWS/Azure\" to demonstrate your familiarity with these technologies.\n\n**Change 4= Highlight strong communication skills**\n\nAs mentioned in the job description, strong communications and stakeholder management skills are essential. Emphasize any experiences where you've effectively communicated technical information to non-technical stakeholders or team members.\n\nHere's an example of how you could revise your Professional Experience section=\n\n**Software Engineer | Enhancesys Technologies - Bangalore, Karnataka**\n\n* Led migration from monolith to microservices in S-NOC project, improving system scalability by 25% and enabling higher transaction throughput.\n* Designed and implemented API Gateways with Springboot, reducing MTTR by 15% and improving API reliability.\n* Successfully communicated technical information to non-technical stakeholders, ensuring smooth integration of multiple third-party APIs.\n\nBy making these changes, your resume will be more aligned with the job description and increase your chances of passing through the applicant tracking system (ATS) and catching the eye of the hiring manager.",
-"suggestions": "Based on the job description, here are some suggested changes to make your resume more compliant=\n\n**Change 1= Highlight relevant experience**\n\nWhile you have experience as a Software Engineer and Java Developer, focus on highlighting projects or experiences that demonstrate strong skills in Frontend and back-end development, Kafka, microservices, Springboot, and AWS/Azure. Specifically, mention the S-NOC project where you led migration from monolith to microservices.\n\n**Change 2= Emphasize technical skills**\n\nIn addition to listing your technical skills, use specific examples or phrases that demonstrate expertise in ReactJS, Core Java/Advanced Java, Springboot, Kafka, and CI/CD. For example=\n\n* \"Developed responsive financial dashboards using ReactJS...\"\n* \"Designed and implemented API Gateways with Springboot...\"\n* \"Streamlined data processing using Kafka...\"\n\n**Change 3= Use keywords from the job description**\n\nIncorporate keywords like \"Frontend and back-end dev,\" \"Kafka, Streaming,\" \"Microservices,\" \"CI/CD,\" and \"AWS/Azure\" to demonstrate your familiarity with these technologies.\n\n**Change 4= Highlight strong communication skills**\n\nAs mentioned in the job description, strong communications and stakeholder management skills are essential. Emphasize any experiences where you've effectively communicated technical information to non-technical stakeholders or team members.\n\nHere's an example of how you could revise your Professional Experience section=\n\n**Software Engineer | Enhancesys Technologies - Bangalore, Karnataka**\n\n* Led migration from monolith to microservices in S-NOC project, improving system scalability by 25% and enabling higher transaction throughput.\n* Designed and implemented API Gateways with Springboot, reducing MTTR by 15% and improving API reliability.\n* Successfully communicated technical information to non-technical stakeholders, ensuring smooth integration of multiple third-party APIs.\n\nBy making these changes, your resume will be more aligned with the job description and increase your chances of passing through the applicant tracking system (ATS) and catching the eye of the hiring manager.",
-"KeyWords" : "Based on the job description, here are some suggested changes to make your resume more compliant=\n\n**Change 1= Highlight relevant experience**\n\nWhile you have experience as a Software Engineer and Java Developer, focus on highlighting projects or experiences that demonstrate strong skills in Frontend and back-end development, Kafka, microservices, Springboot, and AWS/Azure. Specifically, mention the S-NOC project where you led migration from monolith to microservices.\n\n**Change 2= Emphasize technical skills**\n\nIn addition to listing your technical skills, use specific examples or phrases that demonstrate expertise in ReactJS, Core Java/Advanced Java, Springboot, Kafka, and CI/CD. For example=\n\n* \"Developed responsive financial dashboards using ReactJS...\"\n* \"Designed and implemented API Gateways with Springboot...\"\n* \"Streamlined data processing using Kafka...\"\n\n**Change 3= Use keywords from the job description**\n\nIncorporate keywords like \"Frontend and back-end dev,\" \"Kafka, Streaming,\" \"Microservices,\" \"CI/CD,\" and \"AWS/Azure\" to demonstrate your familiarity with these technologies.\n\n**Change 4= Highlight strong communication skills**\n\nAs mentioned in the job description, strong communications and stakeholder management skills are essential. Emphasize any experiences where you've effectively communicated technical information to non-technical stakeholders or team members.\n\nHere's an example of how you could revise your Professional Experience section=\n\n**Software Engineer | Enhancesys Technologies - Bangalore, Karnataka**\n\n* Led migration from monolith to microservices in S-NOC project, improving system scalability by 25% and enabling higher transaction throughput.\n* Designed and implemented API Gateways with Springboot, reducing MTTR by 15% and improving API reliability.\n* Successfully communicated technical information to non-technical stakeholders, ensuring smooth integration of multiple third-party APIs.\n\nBy making these changes, your resume will be more aligned with the job description and increase your chances of passing through the applicant tracking system (ATS) and catching the eye of the hiring manager.",
-"suggestions": "Based on the job description, here are some suggested changes to make your resume more compliant=\n\n**Change 1= Highlight relevant experience**\n\nWhile you have experience as a Software Engineer and Java Developer, focus on highlighting projects or experiences that demonstrate strong skills in Frontend and back-end development, Kafka, microservices, Springboot, and AWS/Azure. Specifically, mention the S-NOC project where you led migration from monolith to microservices.\n\n**Change 2= Emphasize technical skills**\n\nIn addition to listing your technical skills, use specific examples or phrases that demonstrate expertise in ReactJS, Core Java/Advanced Java, Springboot, Kafka, and CI/CD. For example=\n\n* \"Developed responsive financial dashboards using ReactJS...\"\n* \"Designed and implemented API Gateways with Springboot...\"\n* \"Streamlined data processing using Kafka...\"\n\n**Change 3= Use keywords from the job description**\n\nIncorporate keywords like \"Frontend and back-end dev,\" \"Kafka, Streaming,\" \"Microservices,\" \"CI/CD,\" and \"AWS/Azure\" to demonstrate your familiarity with these technologies.\n\n**Change 4= Highlight strong communication skills**\n\nAs mentioned in the job description, strong communications and stakeholder management skills are essential. Emphasize any experiences where you've effectively communicated technical information to non-technical stakeholders or team members.\n\nHere's an example of how you could revise your Professional Experience section=\n\n**Software Engineer | Enhancesys Technologies - Bangalore, Karnataka**\n\n* Led migration from monolith to microservices in S-NOC project, improving system scalability by 25% and enabling higher transaction throughput.\n* Designed and implemented API Gateways with Springboot, reducing MTTR by 15% and improving API reliability.\n* Successfully communicated technical information to non-technical stakeholders, ensuring smooth integration of multiple third-party APIs.\n\nBy making these changes, your resume will be more aligned with the job description and increase your chances of passing through the applicant tracking system (ATS) and catching the eye of the hiring manager.",
-"HonestReview" : "Based on the job description, here are some suggested changes to make your resume more compliant=\n\n**Change 1= Highlight relevant experience**\n\nWhile you have experience as a Software Engineer and Java Developer, focus on highlighting projects or experiences that demonstrate strong skills in Frontend and back-end development, Kafka, microservices, Springboot, and AWS/Azure. Specifically, mention the S-NOC project where you led migration from monolith to microservices.\n\n**Change 2= Emphasize technical skills**\n\nIn addition to listing your technical skills, use specific examples or phrases that demonstrate expertise in ReactJS, Core Java/Advanced Java, Springboot, Kafka, and CI/CD. For example=\n\n* \"Developed responsive financial dashboards using ReactJS...\"\n* \"Designed and implemented API Gateways with Springboot...\"\n* \"Streamlined data processing using Kafka...\"\n\n**Change 3= Use keywords from the job description**\n\nIncorporate keywords like \"Frontend and back-end dev,\" \"Kafka, Streaming,\" \"Microservices,\" \"CI/CD,\" and \"AWS/Azure\" to demonstrate your familiarity with these technologies.\n\n**Change 4= Highlight strong communication skills**\n\nAs mentioned in the job description, strong communications and stakeholder management skills are essential. Emphasize any experiences where you've effectively communicated technical information to non-technical stakeholders or team members.\n\nHere's an example of how you could revise your Professional Experience section=\n\n**Software Engineer | Enhancesys Technologies - Bangalore, Karnataka**\n\n* Led migration from monolith to microservices in S-NOC project, improving system scalability by 25% and enabling higher transaction throughput.\n* Designed and implemented API Gateways with Springboot, reducing MTTR by 15% and improving API reliability.\n* Successfully communicated technical information to non-technical stakeholders, ensuring smooth integration of multiple third-party APIs.\n\nBy making these changes, your resume will be more aligned with the job description and increase your chances of passing through the applicant tracking system (ATS) and catching the eye of the hiring manager.",
-"suggestions": "Based on the job description, here are some suggested changes to make your resume more compliant=\n\n**Change 1= Highlight relevant experience**\n\nWhile you have experience as a Software Engineer and Java Developer, focus on highlighting projects or experiences that demonstrate strong skills in Frontend and back-end development, Kafka, microservices, Springboot, and AWS/Azure. Specifically, mention the S-NOC project where you led migration from monolith to microservices.\n\n**Change 2= Emphasize technical skills**\n\nIn addition to listing your technical skills, use specific examples or phrases that demonstrate expertise in ReactJS, Core Java/Advanced Java, Springboot, Kafka, and CI/CD. For example=\n\n* \"Developed responsive financial dashboards using ReactJS...\"\n* \"Designed and implemented API Gateways with Springboot...\"\n* \"Streamlined data processing using Kafka...\"\n\n**Change 3= Use keywords from the job description**\n\nIncorporate keywords like \"Frontend and back-end dev,\" \"Kafka, Streaming,\" \"Microservices,\" \"CI/CD,\" and \"AWS/Azure\" to demonstrate your familiarity with these technologies.\n\n**Change 4= Highlight strong communication skills**\n\nAs mentioned in the job description, strong communications and stakeholder management skills are essential. Emphasize any experiences where you've effectively communicated technical information to non-technical stakeholders or team members.\n\nHere's an example of how you could revise your Professional Experience section=\n\n**Software Engineer | Enhancesys Technologies - Bangalore, Karnataka**\n\n* Led migration from monolith to microservices in S-NOC project, improving system scalability by 25% and enabling higher transaction throughput.\n* Designed and implemented API Gateways with Springboot, reducing MTTR by 15% and improving API reliability.\n* Successfully communicated technical information to non-technical stakeholders, ensuring smooth integration of multiple third-party APIs.\n\nBy making these changes, your resume will be more aligned with the job description and increase your chances of passing through the applicant tracking system (ATS) and catching the eye of the hiring manager."
-}
-}
+			// };
 
-// /*failure response UI test*/ const response = {res_code: 500, payload: "Internal Server Error"};
-
-			console.log("File uploaded successfully:", response.data);
-			// expected response shape: { res_code: 200, payload: { suggestions: "...", KeyWords: "...", HonestReview: "..." } }
-			const resp = response.data || response;
-
-			if (resp.res_code === 200 && resp.payload) {
-				const p = resp.payload;
-				// navigate to chat and pass the analysis payload
-				navigate('/chat', { state: { analysis: p } });
-				
+			if (response.status === 200 && response.data) {
+				navigate('/chat', { 
+					state: { 
+						analysis: response.data,
+						fileName: selectedFile.name 
+					} 
+				});
 			} else {
-				// fallback if res_code not provided but payload exists
-				setError(resp);
+				setError(response.payload || "Upload failed. Please try again.");
 			}
 			
 		} catch (error) {
 			console.error("Error uploading file:", error);
-			setError(error);
+			setError(error.response?.data?.message || "Network error. Please check your connection and try again.");
 		} finally {
 			setIsLoading(false);
+			setUploadProgress(0);
+			navigate('/chat', { 
+					state: { 
+						analysis: response.data,
+						fileName: selectedFile.name 
+					} 
+				});
 		}		
 	};
 
-	 useEffect(() => {
-		if (error) {
-    if (error.res_code && error.payload) {
-      window.alert(`Error Code: ${error.res_code}\nPayload: ${error.payload}`);
-    } else {
-		window.alert(error);
-	}
-}
-  }, [error]);
+	const clearFile = () => {
+		setSelectedFile(null);
+		setJobDescription("");
+		setError("");
+	};
 
 	const fileData = () => {
 		if (selectedFile) {
 			return (
-				<div>
-					<h2>File Details:</h2>
-					<p>File Name: {selectedFile.name}</p>
-					<p>File Type: {selectedFile.type}</p>
-					<p>
-						Last Modified: {selectedFile.lastModified ? new Date(selectedFile.lastModified).toDateString() : "N/A"}
-					</p>
-				</div>
-			);
-		} else {
-			return (
-				<div>
-					<br />
-					<h4>Choose before Pressing the Upload button</h4>
+				<div className="file-details" style={{ marginTop: 16 }}>
+					<h3>Selected File:</h3>
+					<p><strong>Name:</strong> {selectedFile.name}</p>
+					<p><strong>Type:</strong> {selectedFile.type || "Unknown"}</p>
+					<p><strong>Size:</strong> {(selectedFile.size / 1024).toFixed(2)} KB</p>
+					<p><strong>Last Modified:</strong> {selectedFile.lastModified ? new Date(selectedFile.lastModified).toLocaleDateString() : "N/A"}</p>
+					<button 
+						onClick={clearFile}
+						className="btn btn-sm btn-outline-danger"
+						style={{ marginTop: 8 }}
+					>
+						Remove File
+					</button>
 				</div>
 			);
 		}
+		return null;
 	};
 
 	return (
-		<div style={{ minHeight: "100vh", padding: 20, ...themeStyles }}>
-			<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-				<h1>Mohammed Mishkath, Resume Match Analyzer</h1>
-				<button onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>{theme === "dark" ? "Switch to Light" : "Switch to Dark"} Mode</button>
+		<div className="container" style={{...themeStyles }}>
+			<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+				<h1>📄 Resume Analyzer</h1>
+				 <i className="bi bi-moon border rounded-circle p-2"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            >
+              {theme === "dark" ? "☀️" : "🌙"}
+            </i>
 			</div>
-			<h3>File Upload using React!</h3>
-			<div>
-				<div
-					{...getRootProps()}
-					style={{
-						border: "2px dashed #999",
-						padding: 20,
-						textAlign: "center",
-						cursor: "pointer",
-						marginBottom: 12,
-					}}
-				>
-					<input {...getInputProps()} />
-					{isDragActive ? (
-						<p>Drop the file here ...</p>
-					) : selectedFile ? (
-						<p>{selectedFile.name}</p>
-					) : (
-						<p>Drag & drop a file here, or click to select</p>
-					)}
-				</div>
-				{fileData()}
 
-				{selectedFile && (
-					<div style={{ marginTop: 12 }}>
-						<label style={{ display: "block", marginBottom: 6 }}>
-							Job Description (optional):
-						</label>
-						<textarea
-							value={jobDescription}
-							onChange={(e) => setJobDescription(e.target.value)}
-							placeholder="Paste the job description or role details here..."
-							rows={6}
-							style={{ width: "100%", padding: 8 }}
+			<div className="upload-container" style={{ maxWidth: 600, margin: "0 auto" }}>
+				<h2 className="h4 mb-4">Upload Your Resume</h2>
+
+				{/* Error Display */}
+				{error && (
+					<div className="alert alert-danger" role="alert" style={{ marginBottom: 16 }}>
+						<strong>Error:</strong> {error}
+						<button 
+							onClick={() => setError("")} 
+							className="btn-close float-end"
+							aria-label="Close"
 						/>
 					</div>
 				)}
 
-				<div style={{ marginTop: 12 }}>
-					<button onClick={onFileUpload} disabled={isLoading}>
-						{isLoading ? "Uploading..." : "Upload!"}
-					</button>
+				{/* Dropzone */}
+				<div
+					{...getRootProps()}
+					className={`dropzone ${isDragActive ? 'active' : ''}`}
+					style={{
+						border: `2px dashed ${isDragActive ? '#007bff' : '#999'}`,
+						padding: 40,
+						textAlign: "center",
+						cursor: "pointer",
+						marginBottom: 16,
+						borderRadius: 8,
+						backgroundColor: isDragActive ? 'rgba(0,123,255,0.1)' : 'transparent',
+						transition: 'all 0.3s ease'
+					}}
+					role="button"
+					tabIndex={0}
+					aria-label="File upload dropzone"
+				>
+					<input {...getInputProps()} aria-label="File input" />
+					{isDragActive ? (
+						<p className="mb-0">📥 Drop your resume here...</p>
+					) : selectedFile ? (
+						<div>
+							<p className="mb-1">📄 {selectedFile.name}</p>
+							<small style={themeStyles}>Click or drag to replace</small>
+						</div>
+					) : (
+						<div>
+							<p className="mb-1">📤 Drag & drop your resume here (DOC/DOCX format)</p>
+							{/* <small className="text-muted">Supports DOC, DOCX </small> */}
+						</div>
+					)}
 				</div>
 
-				{isLoading && (
-					<div style={{position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000}}>
-						<div style={{textAlign: 'center', color: '#fff', padding: 20, borderRadius: 8, background: 'rgba(0,0,0,0.6)'}}>
-							<img src="https://i.gifer.com/ZZ5H.gif" alt="Loading..." style={{width: 80, height: 80, display: 'block', margin: '0 auto 12px'}} />
-							<div>Uploading... Please wait</div>
-						</div>
+				{fileData()}
+
+				{/* Job Description Input */}
+				{selectedFile && (
+					<div style={{ marginTop: 16, marginBottom: 16 }}>
+						<label htmlFor="jobDescription" className="form-label fw-bold">
+							Job Description
+						</label>
+						<textarea
+							id="jobDescription"
+							value={jobDescription}
+							onChange={(e) => setJobDescription(e.target.value)}
+							placeholder="Paste the job description here to get tailored suggestions..."
+							rows={6}
+							className="form-control"
+							style={{ 
+								width: "100%", 
+								padding: 12,
+								backgroundColor: theme === "dark" ? "#333" : "#fff",
+								color: theme === "dark" ? "#fff" : "#000",
+								borderColor: theme === "dark" ? "#555" : "#ddd"
+							}}
+							disabled={isLoading}
+						/>
+						<small style={themeStyles}>
+							{jobDescription.length} characters 
+						</small>
 					</div>
 				)}
 
+				{/* Upload Button */}
+				<div style={{ marginTop: 20 }}>
+					<button 
+						onClick={onFileUpload} 
+						disabled={isLoading || !selectedFile}
+						className="btn btn-primary btn-lg w-100"
+						style={{ position: 'relative' }}
+					>
+						{isLoading ? (
+							<>
+								<span className="spinner-border spinner-border-sm me-2" role="status" />
+								Uploading... {uploadProgress > 0 && `${uploadProgress}%`}
+							</>
+						) : (
+							"Analyze Resume"
+						)}
+					</button>
+				</div>
 
+				{/* Info Text */}
+				
 			</div>
+
+			{/* Loading Overlay */}
+			{isLoading && (
+				<div 
+					style={{
+						position: 'fixed',
+						top: 0,
+						left: 0,
+						width: '100%',
+						height: '100%',
+						background: 'rgba(0,0,0,0.5)',
+						display: 'flex',
+						alignItems: 'center',
+						justifyContent: 'center',
+						zIndex: 1000
+					}}
+					role="alert"
+					aria-label="Uploading"
+				>
+					<div style={{
+						textAlign: 'center',
+						color: '#fff',
+						padding: 30,
+						borderRadius: 12,
+						background: 'rgba(0,0,0,0.8)',
+						maxWidth: 300
+					}}>
+						<div className="spinner-border text-light mb-3" style={{ width: '3rem', height: '3rem' }} role="status">
+							<span className="visually-hidden">Loading...</span>
+						</div>
+						<h3>Analyzing Resume</h3>
+						<p className="mb-2">Please wait while we process your file...</p>
+						{uploadProgress > 0 && (
+							<div className="progress mt-2">
+								<div 
+									className="progress-bar progress-bar-striped progress-bar-animated" 
+									style={{ width: `${uploadProgress}%` }}
+								>
+									{uploadProgress}%
+								</div>
+							</div>
+						)}
+						<button 
+							className="btn btn-sm btn-outline-light mt-3"
+							onClick={() => setIsLoading(false)}
+						>
+							Cancel
+						</button>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 };
