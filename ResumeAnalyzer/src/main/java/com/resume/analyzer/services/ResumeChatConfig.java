@@ -19,7 +19,7 @@ public class ResumeChatConfig {
 	}
 	
 	@Bean
-	MessageWindowChatMemory chatMemory(@Autowired InMemoryChatMemoryRepository chatMemory) {
+	MessageWindowChatMemory msgChatMemory(@Autowired InMemoryChatMemoryRepository chatMemory) {
 	    return MessageWindowChatMemory.builder()
 	        .chatMemoryRepository(chatMemory)
 	        .maxMessages(10)
