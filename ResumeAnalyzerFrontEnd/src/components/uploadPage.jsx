@@ -6,6 +6,7 @@ import { useDropzone } from "react-dropzone";
 const UploadPage = () => {
 	const [selectedFile, setSelectedFile] = useState(null);
 	const [jobDescription, setJobDescription] = useState("");
+	const [selectedModel, setSelectedModel] = useState("Ollama");
 	const [error, setError] = useState("");
 	const [isLoading, setIsLoading] = useState(false);
 	const [uploadProgress, setUploadProgress] = useState(0);
@@ -98,9 +99,10 @@ const UploadPage = () => {
 		setUploadProgress(0);
 
 		try {
+			const endpoint = `http://localhost:8080/v1/analyze/${selectedModel}`;
 			// Uncomment when backend is ready
 			const response = await axios.post(
-				"http://localhost:8080/v1/analyze/Ollama",
+				endpoint,
 				formData,
 				{
 					headers: {
@@ -243,6 +245,25 @@ const UploadPage = () => {
 				{/* Job Description Input */}
 				{selectedFile && (
 					<div style={{ marginTop: 16, marginBottom: 16 }}>
+						<label htmlFor="modelSelect" className="form-label fw-bold">
+							Select Model
+						</label>
+						<select
+							id="modelSelect"
+							value={selectedModel}
+							onChange={(e) => setSelectedModel(e.target.value)}
+							className="form-select mb-3"
+							style={{
+								backgroundColor: theme === "dark" ? "#333" : "#fff",
+								color: theme === "dark" ? "#fff" : "#000",
+								borderColor: theme === "dark" ? "#555" : "#ddd"
+							}}
+						>
+							<option value="Ollama">Ollama</option>
+							<option value="deepseek">deepseek</option>
+							<option value="gemini">gemini</option>
+						</select>
+
 						<label htmlFor="jobDescription" className="form-label fw-bold">
 							Job Description
 						</label>
