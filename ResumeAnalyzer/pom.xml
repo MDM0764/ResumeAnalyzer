@@ -13,7 +13,7 @@
 	<artifactId>ResumeAnalyzer</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>ResumeAnalyzer</name>
-	<description>Practice project for lambda and AI</description>
+	<description>Project LLM's' API an Ollama</description>
 	<url />
 	<licenses>
 		<license />
@@ -50,16 +50,28 @@
 			<version>5.5.1</version>
 		</dependency>
 
-		<dependency>
+		<!--<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
-		</dependency>
+		</dependency>-->
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
-			<scope>compile</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.ai</groupId>
+			<artifactId>spring-ai-starter-model-google-genai</artifactId>
+		</dependency>
+<dependency>
+    <groupId>org.projectlombok</groupId>
+    <artifactId>lombok</artifactId>
+</dependency>
+		<dependency>
+			<groupId>org.springframework.ai</groupId>
+			<artifactId>spring-ai-starter-model-deepseek</artifactId>
 		</dependency>
 
 	</dependencies>
