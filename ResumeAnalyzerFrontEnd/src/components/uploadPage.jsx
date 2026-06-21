@@ -130,7 +130,8 @@ const UploadPage = () => {
 				navigate('/chat', { 
 					state: { 
 						analysis: response.data,
-						fileName: selectedFile.name 
+						fileName: selectedFile.name ,
+						modelName: selectedModel
 					} 
 				});
 			} else {
@@ -146,7 +147,8 @@ const UploadPage = () => {
 			navigate('/chat', { 
 					state: { 
 						analysis: response.data,
-						fileName: selectedFile.name 
+						fileName: selectedFile.name ,
+						modelName: selectedModel
 					} 
 				});
 		}		
@@ -261,7 +263,7 @@ const UploadPage = () => {
 						>
 							<option value="Ollama">Ollama</option>
 							<option value="deepseek">deepseek</option>
-							<option value="gemini">gemini</option>
+							<option value="Gemini">Gemini</option>
 						</select>
 
 						<label htmlFor="jobDescription" className="form-label fw-bold">

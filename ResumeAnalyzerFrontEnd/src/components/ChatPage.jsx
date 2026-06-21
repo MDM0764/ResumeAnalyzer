@@ -7,6 +7,7 @@ const ChatPage = (props) => {
   const location = useLocation();
   const navigate = useNavigate();
   const analysis = location.state?.analysis;
+  const modelName = location.state?.modelName;
   const [inputMsg, setInputMsg] = useState("");
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -71,7 +72,7 @@ const ChatPage = (props) => {
   const sendMessageToAI = async (text) => {
     try {
       // Uncomment when backend is ready
-      const response = await axios.post("http://localhost:8080/v1/chat", { message: text });
+      const response = await axios.post(`http://localhost:8080/v1/chat/${modelName}`, { message: text });
       return response;
       
       // Simulated response for now
