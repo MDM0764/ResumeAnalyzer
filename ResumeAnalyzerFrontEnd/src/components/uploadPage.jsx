@@ -131,7 +131,8 @@ const UploadPage = () => {
 					state: { 
 						analysis: response.data,
 						fileName: selectedFile.name ,
-						modelName: selectedModel
+						modelName: selectedModel,
+						conversationId: response.data.conversationId
 					} 
 				});
 			} else {
@@ -148,7 +149,8 @@ const UploadPage = () => {
 					state: { 
 						analysis: response.data,
 						fileName: selectedFile.name ,
-						modelName: selectedModel
+						modelName: selectedModel,
+						conversationId: response.data.conversationId
 					} 
 				});
 		}		

@@ -21,31 +21,30 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.resume.analyzer.controller.GeminiInterface;
-import static com.resume.analyzer.utilities.Prompts.GEMINI_RESUME_ANALYSIS_PROMPT;
-import static com.resume.analyzer.utilities.Prompts.GEMINI_RESUME_REWRITE_PROMPT;
+import com.resume.analyzer.controller.DeepseekInterface;
+import static com.resume.analyzer.utilities.Prompts.DEEPSEEK_RESUME_ANALYSIS_PROMPT;
+import static com.resume.analyzer.utilities.Prompts.DEEPSEEK_RESUME_REWRITE_PROMPT;
 
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
-public class GeminiServices implements GeminiInterface {
+public class DeepseekServices implements DeepseekInterface {
 
-	private final ChatClient geminiChatClient;
+	private final ChatClient chatClient;
 	private final MessageWindowChatMemory chatMemory;
 	private final ExecutorService executor;
 	private final ObjectMapper objmapper;
 
-	public GeminiServices(@Autowired @Qualifier("gemini") ChatClient geminiChatClient,
+	public DeepseekServices(@Autowired @Qualifier("deepseek") ChatClient chatClient,
 			@Autowired MessageWindowChatMemory chatMemory, @Autowired ExecutorService executor,
 			@Autowired ObjectMapper objmapper) {
-		this.geminiChatClient = geminiChatClient;
+		this.chatClient = chatClient;
 		this.chatMemory = chatMemory;
 		this.executor = executor;
 		this.objmapper = objmapper;
 	}
 
-	
 	@Override
 	public String chat(Map<String, String> body) {
 
@@ -60,7 +59,7 @@ public class GeminiServices implements GeminiInterface {
 		try {
 			Future<String> future = executor.submit(() -> {
 				log.info("Started at: {}", System.currentTimeMillis());
-				String response = geminiChatClient.prompt().user(prompt)
+				String response = chatClient.prompt().user(prompt)
 						.advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId)).call().content();
 				log.info("Ended at: {}", System.currentTimeMillis());
 				log.info("Response: {}", response);
@@ -94,9 +93,10 @@ public class GeminiServices implements GeminiInterface {
 			Future<?> futureReview = executor.submit(() -> {
 				try {
 					log.info("Started p1: " + System.currentTimeMillis());
-					String prompt = GEMINI_RESUME_ANALYSIS_PROMPT.replace("{JOB_DESCRIPTION}", jobDesc)
+					String prompt = DEEPSEEK_RESUME_ANALYSIS_PROMPT
+							.replace("{JOB_DESCRIPTION}", jobDesc)
 							.replace("{RESUME}", extractedText);
-					String resp = geminiChatClient.prompt().user(prompt)
+					String resp = chatClient.prompt().user(prompt)
 							.advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId)).call().content();
 					log.info("RAW: " + resp);
 					result.put("HonestReview", objmapper.writeValueAsString(resp));
@@ -107,15 +107,15 @@ public class GeminiServices implements GeminiInterface {
 			});
 			Future<?> futureSuggestion = executor.submit(() -> {
 				try {
-					log.info("Started p3: " + System.currentTimeMillis());
-					String prompt2 = GEMINI_RESUME_REWRITE_PROMPT.replace("{JOB_DESCRIPTION}", jobDesc)
+					log.info("Started p2: " + System.currentTimeMillis());
+					String prompt2 = DEEPSEEK_RESUME_REWRITE_PROMPT.replace("{JOB_DESCRIPTION}", jobDesc)
 							.replace("{RESUME}", extractedText);
-					String resp2 = geminiChatClient.prompt().user(prompt2)
+					String resp2 = chatClient.prompt().user(prompt2)
 							.advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId)).call().content();
 					log.info("RAW2: " + resp2);
 					result.put("Suggestions", objmapper.writeValueAsString(resp2));
 
-					log.info("Ended p3: " + System.currentTimeMillis());
+					log.info("Ended p2: " + System.currentTimeMillis());
 				} catch (JsonProcessingException e) {
 					e.printStackTrace();
 				}

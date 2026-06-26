@@ -21,6 +21,6 @@ public interface OllamaInterface {
 	String analyze(@RequestParam("file") MultipartFile multipartFile, @RequestParam("jobDescription") String jobDesc) throws Exception;
 	
 	@GetMapping("/clear/Ollama")
-	void clear();
+	void clear(@RequestBody Map<String, String> body);
 
 }

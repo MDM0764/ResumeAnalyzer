@@ -12,15 +12,15 @@ import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/v1")
-public interface GeminiInterface {
+public interface DeepseekInterface {
 	
-	@PostMapping("/chat/Gemini")
+	@PostMapping("/chat/deepseek")
 	String chat(@RequestBody Map<String, String> body);
 	
-	@PostMapping("/analyze/Gemini")
+	@PostMapping("/analyze/deepseek")
 	String analyze(@RequestParam("file") MultipartFile multipartFile, @RequestParam("jobDescription") String jobDesc) throws Exception;
 	
-	@GetMapping("/clear/Gemini")
+	@GetMapping("/clear/deepseek")
 	void clear(@RequestBody Map<String, String> body);
 
 }

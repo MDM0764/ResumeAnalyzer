@@ -8,6 +8,7 @@ const ChatPage = (props) => {
   const navigate = useNavigate();
   const analysis = location.state?.analysis;
   const modelName = location.state?.modelName;
+  const conversationId = location.state?.conversationId;
   const [inputMsg, setInputMsg] = useState("");
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -72,7 +73,7 @@ const ChatPage = (props) => {
   const sendMessageToAI = async (text) => {
     try {
       // Uncomment when backend is ready
-      const response = await axios.post(`http://localhost:8080/v1/chat/${modelName}`, { message: text });
+      const response = await axios.post(`http://localhost:8080/v1/chat/${modelName}`, { message: text, conversationId });
       return response;
       
       // Simulated response for now
@@ -256,7 +257,7 @@ const ChatPage = (props) => {
 
             {/* Reset Button */}
             <div className="mt-2">
-              <button className="btn btn-sm btn-secondary" onClick={() =>{   axios.post("http://localhost:8080/v1/clear", { }); navigate('/')}}>
+              <button className="btn btn-sm btn-secondary" onClick={() =>{   axios.post(`http://localhost:8080/v1/clear/${modelName}`, { conversationId }); navigate('/')}}>
                 ← Back to Upload
               </button>
                {messages.length > 0 && (
