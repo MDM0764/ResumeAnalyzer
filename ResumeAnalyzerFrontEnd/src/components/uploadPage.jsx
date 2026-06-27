@@ -1,7 +1,9 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useDropzone } from "react-dropzone";
+import useTheme from "../hooks/useTheme";
+import { API_BASE_URL } from "../constants/api";
 
 const UploadPage = () => {
 	const [selectedFile, setSelectedFile] = useState(null);
@@ -10,30 +12,16 @@ const UploadPage = () => {
 	const [error, setError] = useState("");
 	const [isLoading, setIsLoading] = useState(false);
 	const [uploadProgress, setUploadProgress] = useState(0);
+	const { theme, setTheme, themeStyles } = useTheme("#121212");
 
-	// theme (light / dark)
-	const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "light");
-	
-	useEffect(() => {
-		localStorage.setItem("theme", theme);
-		document.documentElement.classList.remove('theme-light', 'theme-dark');
-		document.documentElement.classList.add(`theme-${theme}`);
-		document.body.classList.remove('theme-light', 'theme-dark');
-		document.body.classList.add(`theme-${theme}`);
-	}, [theme]);
-
-	const themeStyles = theme === "dark"
-		? { background: "#121212", color: "#eee" }
-		: { background: "#fff", color: "#111" };
-	
 	const navigate = useNavigate();
 
 	// Validate file type
 	const validateFile = (file) => {
-		const allowedTypes = ['application/msword', 
+		const allowedTypes = ['application/msword',
 			'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
 		const maxSize = 5 * 1024 * 1024; // 5MB
-		
+
 		if (!allowedTypes.includes(file.type)) {
 			setError('Please upload a Word document only.');
 			return false;
@@ -55,7 +43,7 @@ const UploadPage = () => {
 
 	const onDrop = useCallback((acceptedFiles, rejectedFiles) => {
 		if (rejectedFiles.length > 0) {
-			setError('Invalid file type. Please upload PDF or Word documents.');
+			setError('Invalid file type. Please upload Word documents (.doc, .docx).');
 			return;
 		}
 		if (acceptedFiles && acceptedFiles.length > 0) {
@@ -67,10 +55,10 @@ const UploadPage = () => {
 		}
 	}, []);
 
-	const { getRootProps, getInputProps, isDragActive } = useDropzone({ 
-		onDrop, 
+	const { getRootProps, getInputProps, isDragActive } = useDropzone({
+		onDrop,
 		multiple: false,
-		accept: {			
+		accept: {
 			'application/msword': ['.doc'],
 			'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx']
 		}
@@ -89,7 +77,7 @@ const UploadPage = () => {
 
 		const formData = new FormData();
 		formData.append("file", selectedFile);
-		
+
 		if (jobDescription && jobDescription.trim() !== "") {
 			formData.append("jobDescription", jobDescription.trim());
 		}
@@ -99,8 +87,7 @@ const UploadPage = () => {
 		setUploadProgress(0);
 
 		try {
-			const endpoint = `http://localhost:8080/v1/analyze/${selectedModel}`;
-			// Uncomment when backend is ready
+			const endpoint = `${API_BASE_URL}/v1/analyze/${selectedModel}`;
 			const response = await axios.post(
 				endpoint,
 				formData,
@@ -115,45 +102,26 @@ const UploadPage = () => {
 				}
 			);
 
-			// Mock success response
-			// await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate network delay
-			// const response = { 
-			// 	res_code: 200, 
-			// 	payload: {
-			// 		Suggestions: "Based on your resume and the job description, here are key suggestions for improvement...",
-			// 		KeyWords: "Java, Spring Boot, React, AWS, Microservices, Kafka",
-			// 		HonestReview: "Your resume shows strong technical skills but could benefit from more quantifiable achievements."
-			// 	}
-			// };
-
 			if (response.status === 200 && response.data) {
-				navigate('/chat', { 
-					state: { 
+				navigate('/chat', {
+					state: {
 						analysis: response.data,
 						fileName: selectedFile.name ,
 						modelName: selectedModel,
 						conversationId: response.data.conversationId
-					} 
+					}
 				});
 			} else {
-				setError(response.payload || "Upload failed. Please try again.");
+				setError("Upload failed. Please try again.");
 			}
-			
+
 		} catch (error) {
 			console.error("Error uploading file:", error);
 			setError(error.response?.data?.message || "Network error. Please check your connection and try again.");
 		} finally {
 			setIsLoading(false);
 			setUploadProgress(0);
-			navigate('/chat', { 
-					state: { 
-						analysis: response.data,
-						fileName: selectedFile.name ,
-						modelName: selectedModel,
-						conversationId: response.data.conversationId
-					} 
-				});
-		}		
+		}
 	};
 
 	const clearFile = () => {
@@ -171,7 +139,7 @@ const UploadPage = () => {
 					<p><strong>Type:</strong> {selectedFile.type || "Unknown"}</p>
 					<p><strong>Size:</strong> {(selectedFile.size / 1024).toFixed(2)} KB</p>
 					<p><strong>Last Modified:</strong> {selectedFile.lastModified ? new Date(selectedFile.lastModified).toLocaleDateString() : "N/A"}</p>
-					<button 
+					<button
 						onClick={clearFile}
 						className="btn btn-sm btn-outline-danger"
 						style={{ marginTop: 8 }}
@@ -202,8 +170,8 @@ const UploadPage = () => {
 				{error && (
 					<div className="alert alert-danger" role="alert" style={{ marginBottom: 16 }}>
 						<strong>Error:</strong> {error}
-						<button 
-							onClick={() => setError("")} 
+						<button
+							onClick={() => setError("")}
 							className="btn-close float-end"
 							aria-label="Close"
 						/>
@@ -239,7 +207,6 @@ const UploadPage = () => {
 					) : (
 						<div>
 							<p className="mb-1">📤 Drag & drop your resume here (DOC/DOCX format)</p>
-							{/* <small className="text-muted">Supports DOC, DOCX </small> */}
 						</div>
 					)}
 				</div>
@@ -278,8 +245,8 @@ const UploadPage = () => {
 							placeholder="Paste the job description here to get tailored suggestions..."
 							rows={6}
 							className="form-control"
-							style={{ 
-								width: "100%", 
+							style={{
+								width: "100%",
 								padding: 12,
 								backgroundColor: theme === "dark" ? "#333" : "#fff",
 								color: theme === "dark" ? "#fff" : "#000",
@@ -288,15 +255,15 @@ const UploadPage = () => {
 							disabled={isLoading}
 						/>
 						<small style={themeStyles}>
-							{jobDescription.length} characters 
+							{jobDescription.length} characters
 						</small>
 					</div>
 				)}
 
 				{/* Upload Button */}
 				<div style={{ marginTop: 20 }}>
-					<button 
-						onClick={onFileUpload} 
+					<button
+						onClick={onFileUpload}
 						disabled={isLoading || !selectedFile}
 						className="btn btn-primary btn-lg w-100"
 						style={{ position: 'relative' }}
@@ -311,14 +278,11 @@ const UploadPage = () => {
 						)}
 					</button>
 				</div>
-
-				{/* Info Text */}
-				
 			</div>
 
 			{/* Loading Overlay */}
 			{isLoading && (
-				<div 
+				<div
 					style={{
 						position: 'fixed',
 						top: 0,
@@ -349,15 +313,15 @@ const UploadPage = () => {
 						<p className="mb-2">Please wait while we process your file...</p>
 						{uploadProgress > 0 && (
 							<div className="progress mt-2">
-								<div 
-									className="progress-bar progress-bar-striped progress-bar-animated" 
+								<div
+									className="progress-bar progress-bar-striped progress-bar-animated"
 									style={{ width: `${uploadProgress}%` }}
 								>
 									{uploadProgress}%
 								</div>
 							</div>
 						)}
-						<button 
+						<button
 							className="btn btn-sm btn-outline-light mt-3"
 							onClick={() => setIsLoading(false)}
 						>

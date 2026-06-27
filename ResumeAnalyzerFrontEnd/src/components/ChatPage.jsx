@@ -1,41 +1,26 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useLocation, useNavigate } from "react-router-dom";
-
+import useTheme from "../hooks/useTheme";
+import { API_BASE_URL } from "../constants/api";
 
 const ChatPage = (props) => {
   const location = useLocation();
   const navigate = useNavigate();
   const analysis = location.state?.analysis;
-  const modelName = location.state?.modelName;
+  const modelName = location.state?.modelName || "Gemini";
   const conversationId = location.state?.conversationId;
   const [inputMsg, setInputMsg] = useState("");
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-
-  // placeholder prompts that user can click to send as messages
   const [placeholderPrompts, setPlaceholderPrompts] = useState([
     "Prepare for an interview based on the resume and job Description",
     "Summarize key strengths from the resume"
   ]);
-
   const [suggestions, setSuggestions] = useState("");
   const [honestReview, setHonestReview] = useState("");
   const [showDashboard, setShowDashboard] = useState(false);
-
-  const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "light");
-  
-  useEffect(() => {
-    localStorage.setItem("theme", theme);
-    document.documentElement.classList.remove('theme-light', 'theme-dark');
-    document.documentElement.classList.add(`theme-${theme}`);
-    document.body.classList.remove('theme-light', 'theme-dark');
-    document.body.classList.add(`theme-${theme}`);
-  }, [theme]);
-
-  const themeStyles = theme === "dark"
-    ? { background: "#43454a", color: "#eee" ,  muted: "#888"}
-    : { background: "#fff", color: "#111", muted: "#666" };
+  const { theme, setTheme, themeStyles } = useTheme();
 
     
   // Initialize suggestion/keywords/review from navigation state or props
@@ -72,8 +57,7 @@ const ChatPage = (props) => {
   // AI response handler
   const sendMessageToAI = async (text) => {
     try {
-      // Uncomment when backend is ready
-      const response = await axios.post(`http://localhost:8080/v1/chat/${modelName}`, { message: text, conversationId });
+      const response = await axios.post(`${API_BASE_URL}/v1/chat/${modelName}`, { message: text, conversationId });
       return response;
       
       // Simulated response for now
@@ -111,10 +95,10 @@ const ChatPage = (props) => {
     }
   };
 
-  const handlePromptClick = (prompt) => {
+  const handlePromptClick = (prompt, index) => {
     setInputMsg(prompt);
-    // Remove the clicked prompt
-    setPlaceholderPrompts((prev) => prev.filter((_, idx) => idx !== placeholderPrompts.indexOf(prompt)));
+    // Remove the clicked prompt by its index
+    setPlaceholderPrompts((prev) => prev.filter((_, idx) => idx !== index));
   };
 
   const clearChat = () => {
@@ -137,11 +121,11 @@ const ChatPage = (props) => {
               {showDashboard ? 'Hide Dashboard' : 'Show Dashboard'}
             </button>
             <h1>Resume Analyzer</h1>
-            <i className="bi bi-moon border rounded-circle p-2"
+            <button className="bi bi-moon border rounded-circle p-2"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             >
               {theme === "dark" ? "☀️" : "🌙"}
-            </i>
+            </button>
           </div>
          
         </div>
@@ -218,7 +202,7 @@ const ChatPage = (props) => {
                     key={i}
                     className="badge p-2"
                     style={{ cursor: 'pointer', ...themeStyles }}
-                    onClick={() => handlePromptClick(p)}
+                    onClick={() => handlePromptClick(p, i)}
                   >
                     {p}
                   </span>
@@ -257,7 +241,7 @@ const ChatPage = (props) => {
 
             {/* Reset Button */}
             <div className="mt-2">
-              <button className="btn btn-sm btn-secondary" onClick={() =>{   axios.post(`http://localhost:8080/v1/clear/${modelName}`, { conversationId }); navigate('/')}}>
+              <button className="btn btn-sm btn-secondary" onClick={async () =>{   await axios.post(`${API_BASE_URL}/v1/clear/${modelName}`, { conversationId }); navigate('/')}}>
                 ← Back to Upload
               </button>
                {messages.length > 0 && (
