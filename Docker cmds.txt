@@ -1,0 +1,7 @@
+docker build -t resumeanalyzerfrontend .
+
+docker run -d -p 5173:5173 --name resume resumeanalyzerfrontend
+
+docker build -t resumeanalyzer .
+
+docker run -d -p 8080:8080 -e GEMINI_API_KEY=AIzaSyDDliXYW66Ext5VN6r3sR8gurkm8tpOd7U -e DEEPSEEK_API_KEY=prod --name resumebackend resumeanalyzer

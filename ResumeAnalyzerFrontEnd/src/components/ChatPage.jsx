@@ -3,6 +3,7 @@ import axios from "axios";
 import { useLocation, useNavigate } from "react-router-dom";
 import useTheme from "../hooks/useTheme";
 import { API_BASE_URL } from "../constants/api";
+import Markdown from 'react-markdown'
 
 const ChatPage = (props) => {
   const location = useLocation();
@@ -132,21 +133,34 @@ const ChatPage = (props) => {
 
         {/* Dashboard */}
         {showDashboard && (
-          <div className="card mb-4" style={themeStyles}>
-            <div className="card-body">
-              <h2 className="card-title h2">Analysis Dashboard</h2>
-              <div className="row">               
-                <div className="col-md-6">
-                  <h5 className="card-subtitle mb-2">Honest Review</h5>
-                  <p className="card-text" style={{ whiteSpace: "pre-wrap" }}>
-                    {honestReview || "No review available"}
-                  </p>
+          <div className="row g-3 mb-12">
+            <div className="col-12">
+              <div className="card" style={themeStyles}>
+                <div className="card-body">
+                  <h2 className="card-title h4">Analysis Dashboard</h2>
+                  <p className="card-text text-muted">Review the AI-generated honest review and suggestions separately for clearer feedback.</p>
                 </div>
-                <div className="col-md-6">
-                  <h5 className="card-subtitle mb-2">Suggestions</h5>
-                  <p className="card-text" style={{ whiteSpace: "pre-wrap" }}>
-                    {suggestions || "No suggestions available"}
-                  </p>
+              </div>
+            </div>
+
+            <div className="col-md-12">
+              <div className="card h-100" style={themeStyles}>
+                <div className="card-body">
+                  <h2 className="card-title mb-3">Honest Review</h2>
+                  <div className="card-text">
+                    <Markdown children={honestReview?.trim() ? honestReview.replace(/^"(.*)"$/, "$1").replace(/\\"/g, '"').replace(/\\n/g, "\n") : "No review available"} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="col-md-12">
+              <div className="card h-100" style={themeStyles}>
+                <div className="card-body">
+                  <h2 className="card-title mb-3">Suggestions</h2>
+                  <div className="card-text">
+                    <Markdown children={suggestions?.trim() ? suggestions.replace(/^"(.*)"$/, "$1").replace(/\\"/g, '"').replace(/\\n/g, "\n") : "No suggestions available"} />
+                  </div>
                 </div>
               </div>
             </div>

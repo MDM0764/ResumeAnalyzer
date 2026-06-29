@@ -16,8 +16,7 @@ import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.stereotype.Service;
-import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,7 +27,7 @@ import static com.resume.analyzer.utilities.Prompts.DEEPSEEK_RESUME_REWRITE_PROM
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@Service
+@RestController
 public class DeepseekServices implements DeepseekInterface {
 
 	private final ChatClient chatClient;
@@ -62,10 +61,8 @@ public class DeepseekServices implements DeepseekInterface {
 				String response = chatClient.prompt().user(prompt)
 						.advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId)).call().content();
 				log.info("Ended at: {}", System.currentTimeMillis());
-				log.info("Response: {}", response);
 				return response;
 			});
-			// Block with a timeout to avoid indefinite hangs
 			return future.get(60, TimeUnit.SECONDS);
 		} catch (Exception e) {
 			log.error("Chat failed", e);
@@ -78,7 +75,6 @@ public class DeepseekServices implements DeepseekInterface {
 		String finalResp = null;
 		try {
 			String conversationId = UUID.randomUUID().toString();
-			log.info("" + multipartFile.getOriginalFilename());
 			log.info("Started Time in Milliseconds: " + System.currentTimeMillis());
 			Map<String, String> result = new ConcurrentHashMap<>();
 			String extractedText;
@@ -98,7 +94,6 @@ public class DeepseekServices implements DeepseekInterface {
 							.replace("{RESUME}", extractedText);
 					String resp = chatClient.prompt().user(prompt)
 							.advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId)).call().content();
-					log.info("RAW: " + resp);
 					result.put("HonestReview", objmapper.writeValueAsString(resp));
 					log.info("Ended p1: " + System.currentTimeMillis());
 				} catch (JsonProcessingException e) {
@@ -112,7 +107,6 @@ public class DeepseekServices implements DeepseekInterface {
 							.replace("{RESUME}", extractedText);
 					String resp2 = chatClient.prompt().user(prompt2)
 							.advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId)).call().content();
-					log.info("RAW2: " + resp2);
 					result.put("Suggestions", objmapper.writeValueAsString(resp2));
 
 					log.info("Ended p2: " + System.currentTimeMillis());
@@ -136,7 +130,7 @@ public class DeepseekServices implements DeepseekInterface {
 	}
 
 	@Override
-	public void clear(Map<String, String> body) {
+	public void clear(Map<String, String> body) throws Exception{
 		try {
 			log.info("Started Time in Milliseconds: " + System.currentTimeMillis());
 			String conversationId = body.get("conversationId");
@@ -146,12 +140,9 @@ public class DeepseekServices implements DeepseekInterface {
 			}
 			chatMemory.clear(conversationId);
 			log.info("Ended : " + System.currentTimeMillis());
-		} catch (ResourceAccessException e) { // TODO: handle exception
-			log.error("Failed to extract text from Word file", e);
-
-		} catch (Exception e) {
-			log.error("Failed to extract text from Word file", e);
+		}  catch (Exception e) {
+			log.error("Exception when clearing chat: "+ e.getLocalizedMessage(), e);
+			throw e;
 		}
 	}
-
 }

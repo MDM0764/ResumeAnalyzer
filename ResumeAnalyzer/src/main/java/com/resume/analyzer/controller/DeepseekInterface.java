@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-@RestController
 @RequestMapping("/v1")
 public interface DeepseekInterface {
 	
@@ -20,7 +19,7 @@ public interface DeepseekInterface {
 	@PostMapping("/analyze/deepseek")
 	String analyze(@RequestParam("file") MultipartFile multipartFile, @RequestParam("jobDescription") String jobDesc) throws Exception;
 	
-	@GetMapping("/clear/deepseek")
-	void clear(@RequestBody Map<String, String> body);
+	@PostMapping("/clear/deepseek")
+	void clear(@RequestBody Map<String, String> body) throws Exception;
 
 }

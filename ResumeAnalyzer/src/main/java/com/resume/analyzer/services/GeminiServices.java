@@ -5,7 +5,6 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -16,8 +15,7 @@ import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.stereotype.Service;
-import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,7 +26,7 @@ import static com.resume.analyzer.utilities.Prompts.GEMINI_RESUME_REWRITE_PROMPT
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@Service
+@RestController
 public class GeminiServices implements GeminiInterface {
 
 	private final ChatClient geminiChatClient;
@@ -63,10 +61,8 @@ public class GeminiServices implements GeminiInterface {
 				String response = geminiChatClient.prompt().user(prompt)
 						.advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId)).call().content();
 				log.info("Ended at: {}", System.currentTimeMillis());
-				log.info("Response: {}", response);
 				return response;
 			});
-			// Block with a timeout to avoid indefinite hangs
 			return future.get(60, TimeUnit.SECONDS);
 		} catch (Exception e) {
 			log.error("Chat failed", e);
@@ -79,9 +75,8 @@ public class GeminiServices implements GeminiInterface {
 		String finalResp = null;
 		try {
 			String conversationId = UUID.randomUUID().toString();
-			log.info("" + multipartFile.getOriginalFilename());
 			log.info("Started Time in Milliseconds: " + System.currentTimeMillis());
-			Map<String, String> result = new ConcurrentHashMap<>();
+			Map<String, String> result = new HashMap<>();
 			String extractedText;
 			try (InputStream inputStream = multipartFile.getInputStream();
 					XWPFDocument document = new XWPFDocument(inputStream);
@@ -98,7 +93,6 @@ public class GeminiServices implements GeminiInterface {
 							.replace("{RESUME}", extractedText);
 					String resp = geminiChatClient.prompt().user(prompt)
 							.advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId)).call().content();
-					log.info("RAW: " + resp);
 					result.put("HonestReview", objmapper.writeValueAsString(resp));
 					log.info("Ended p1: " + System.currentTimeMillis());
 				} catch (JsonProcessingException e) {
@@ -112,7 +106,6 @@ public class GeminiServices implements GeminiInterface {
 							.replace("{RESUME}", extractedText);
 					String resp2 = geminiChatClient.prompt().user(prompt2)
 							.advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId)).call().content();
-					log.info("RAW2: " + resp2);
 					result.put("Suggestions", objmapper.writeValueAsString(resp2));
 
 					log.info("Ended p3: " + System.currentTimeMillis());
@@ -136,7 +129,7 @@ public class GeminiServices implements GeminiInterface {
 	}
 
 	@Override
-	public void clear(Map<String, String> body) {
+	public void clear(Map<String, String> body) throws Exception{
 		try {
 			log.info("Started Time in Milliseconds: " + System.currentTimeMillis());
 			String conversationId = body.get("conversationId");
@@ -146,12 +139,15 @@ public class GeminiServices implements GeminiInterface {
 			}
 			chatMemory.clear(conversationId);
 			log.info("Ended : " + System.currentTimeMillis());
-		} catch (ResourceAccessException e) { // TODO: handle exception
-			log.error("Failed to extract text from Word file", e);
-
-		} catch (Exception e) {
-			log.error("Failed to extract text from Word file", e);
+		}  catch (Exception e) {
+			log.error("Exception when clearing chat: "+ e.getLocalizedMessage(), e);
+			throw e;
 		}
+	}
+	
+	@Override
+	public String test() {
+		return "Testing ";
 	}
 
 }
