@@ -190,7 +190,7 @@ const ChatPage = (props) => {
                       }`}
                       style={{ maxWidth: '80%' }}
                     >
-                      {m.text}
+                     <Markdown children={m.text} />
                     </span>
                   </div>
                 ))}

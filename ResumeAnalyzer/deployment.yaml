@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: java-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: java-backend
+  template:
+    metadata:
+      labels:
+        app: java-backend
+    spec:
+      containers:
+        - name: java-backend
+          image: resumeanalyzer:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+           - name: DEEPSEEK_API_KEY
+             valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: DEEPSEEK_API_KEY
+           - name: GEMINI_API_KEY
+             valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: GEMINI_API_KEY
+           - name: SPRING_PROFILES_ACTIVE
+             value: "kubernetes"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"

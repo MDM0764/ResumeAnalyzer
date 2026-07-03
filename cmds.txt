@@ -1,0 +1,36 @@
+docker build -t resumeanalyzerfrontend .
+
+docker build -t resumeanalyzer .
+
+#docker images
+
+kubectl create namespace resume-analyzer
+
+kubectl config set-context --current --namespace=resume-analyzer
+
+kubectl describe pod 
+
+
+kubectl apply -f deployment.yaml
+
+kubectl apply -f service.yaml
+
+kubectl get pods -w
+
+kubectl port-forward svc/react-app-service 5173:5173
+
+kubectl delete deployment react-app
+
+kubectl create secret generic backend-secrets  --from-literal=DEEPSEEK_API_KEY=$env:DEEPSEEK_API_KEY   --from-literal=GEMINI_API_KEY=$env:GEMINI_API_KEY
+
+kubectl apply -f deployment.yaml
+
+kubectl apply -f service.yaml
+
+kubectl get pods -w
+
+kubectl port-forward svc/java-backend-service 8080:8080
+
+kubectl delete deployment java-backend
+
+kubectl logs java-backend-5459f56b9d-xx958 
